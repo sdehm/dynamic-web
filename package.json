@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@primer/css": "^20.5.1",
+    "esbuild": "^0.15.13",
+    "esbuild-sass-plugin": "^2.4.0",
+    "morphdom": "^2.6.1"
+  }
+}
