@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"golang.org/x/net/websocket"
-
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/sdehm/go-morph/templates"
 )
 
@@ -24,8 +24,12 @@ func Start(templates *templates.Templates) *Server {
 	}
 	http.HandleFunc("/", indexHandler(server))
 	http.Handle("/public/", http.FileServer(http.FS(public)))
-	http.Handle("/echo", websocket.Handler(EchoServer))
+	
+	http.Handle("/ws", wsHandler(server))
+	
 	http.ListenAndServe(":8080", nil)
+
+
 	return server
 }
 
@@ -35,15 +39,26 @@ func indexHandler(s *Server) http.HandlerFunc {
 	}
 }
 
-// Echo the data received on the WebSocket.
-func EchoServer(ws *websocket.Conn) {
-	fmt.Println("done")
-
-	for {
-		var message string
-		websocket.Message.Receive(ws, &message)
-		fmt.Println("Received back from client: " + message)
+// currently just echos back the message and prints it to the console
+func wsHandler(s *Server) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conn, _, _, err := ws.UpgradeHTTP(r, w)
+		if err != nil {
+			panic(err)
+		}
+		go func() {
+			defer conn.Close()
+			for {
+				msg, err := wsutil.ReadClientText(conn)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(string(msg))
+				err = wsutil.WriteServerText(conn, msg)
+				if err != nil {
+					panic(err)
+				}
+			}
+		}()
 	}
-	
-	// io.Copy(ws, ws)
 }
