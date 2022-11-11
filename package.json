@@ -4,5 +4,8 @@
     "esbuild": "^0.15.13",
     "esbuild-sass-plugin": "^2.4.0",
     "morphdom": "^2.6.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.2.4"
   }
 }
