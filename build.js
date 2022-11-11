@@ -1,13 +1,9 @@
-// import {sassPlugin} from 'esbuild-sass-plugin'
-import { sassPlugin } from 'esbuild-sass-plugin';
 import { build } from 'esbuild';
 
 build({
   format: 'esm',
-  entryPoints: ['index.scss'],
+  bundle: true,
+  entryPoints: ['templates/index.js'],
   outdir: 'server/public',
-  plugins: [sassPlugin({
-    // loadPaths: ['node_modules/@primer/css', 'test.scss'],
-    // type: "style",
-  })]
+  plugins: []
 })
