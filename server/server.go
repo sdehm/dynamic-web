@@ -16,16 +16,16 @@ import (
 var public embed.FS
 
 type Server struct {
-	templates          *templates.Templates
-	connections        []*connection
-	connectionsPending chan net.Conn
-	lastId             int
+	templates         *templates.Templates
+	connections       []*connection
+	connectionUpdates chan func()
+	lastId            int
 }
 
 func Start(templates *templates.Templates) *Server {
 	server := &Server{
-		templates:          templates,
-		connectionsPending: make(chan net.Conn),
+		templates:         templates,
+		connectionUpdates: make(chan func()),
 	}
 	http.HandleFunc("/", server.indexHandler())
 	http.Handle("/public/", http.FileServer(http.FS(public)))
@@ -33,7 +33,7 @@ func Start(templates *templates.Templates) *Server {
 	http.Handle("/ws", server.wsHandler())
 
 	go server.clockTick()
-	go server.startConnectionAdder()
+	go server.startConnectionUpdates()
 
 	http.ListenAndServe(":8080", nil)
 
@@ -84,24 +84,28 @@ func (s *Server) broadcast(m morphData) {
 	}
 }
 
-func (s *Server) startConnectionAdder() {
-	for c := range s.connectionsPending {
-		s.lastId++
-		s.connections = append(s.connections, newConnection(s.lastId, c))
-		s.updateConnectionCount()
+func (s *Server) startConnectionUpdates() {
+	for u := range s.connectionUpdates {
+		u()
 	}
 }
 
 func (s *Server) addConnection(c net.Conn) {
-	s.connectionsPending <- c
+	s.connectionUpdates <- func() {
+		s.lastId++
+		s.connections = append(s.connections, newConnection(s.lastId, c))
+		go s.updateConnectionCount()
+	}
 }
 
 func (s *Server) removeConnection(c *connection) {
-	for i, con := range s.connections {
-		if con.id == c.id {
-			s.connections = append(s.connections[:i], s.connections[i+1:]...)
-			s.updateConnectionCount()
-			return
+	s.connectionUpdates <- func() {
+		for i, con := range s.connections {
+			if con.id == c.id {
+				s.connections = append(s.connections[:i], s.connections[i+1:]...)
+				go s.updateConnectionCount()
+				return
+			}
 		}
 	}
 }
