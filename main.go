@@ -8,5 +8,6 @@ import (
 )
 
 func main() {
-	log.Fatal(server.Start(templates.New()))
+	logger := log.New(log.Writer(), "server: ", log.Flags())
+	log.Fatal(server.Start(templates.New(), logger))
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"embed"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"time"
@@ -18,14 +19,16 @@ var public embed.FS
 
 type Server struct {
 	templates         *templates.Templates
+	logger 					  *log.Logger
 	connections       []*connection
 	connectionUpdates chan func()
 	lastId            int
 }
 
-func Start(templates *templates.Templates) error {
+func Start(templates *templates.Templates, logger *log.Logger) error {
 	server := &Server{
 		templates:         templates,
+		logger:            logger,
 		connectionUpdates: make(chan func()),
 	}
 	http.HandleFunc("/", server.indexHandler())
@@ -57,10 +60,10 @@ func (s *Server) wsHandler() http.HandlerFunc {
 
 // sends a message to the client every second with the current time updated
 func (s *Server) clockTick() {
-	fmt.Println("starting clock tick")
+	s.logger.Println("starting clock tick")
 	for tick := range time.Tick(time.Second) {
 		t := tick.Format(time.RFC3339)
-		fmt.Println(t)
+		s.logger.Printf("sending time: %s", t)
 		s.broadcast(morphData{
 			Id:   "clock",
 			Html: fmt.Sprintf("<p id=\"clock\" class=\"text-base text-gray-500\">%s</p>", t),
@@ -77,7 +80,7 @@ func (s *Server) broadcast(m morphData) {
 	for _, c := range s.connections {
 		err := c.send(m)
 		if err != nil {
-			fmt.Println(err)
+			s.logger.Println(err)
 			s.removeConnection(c)
 		}
 	}
