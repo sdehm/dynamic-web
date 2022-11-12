@@ -12,6 +12,7 @@ import (
 )
 
 // public content
+//
 //go:embed public
 var public embed.FS
 
