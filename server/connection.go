@@ -9,27 +9,31 @@ import (
 )
 
 type connection struct {
+	id   int
 	conn net.Conn
 }
 
-func newConnection(conn net.Conn) *connection {
+func newConnection(id int, conn net.Conn) *connection {
 	return &connection{
+		id:   id,
 		conn: conn,
 	}
 }
 
 // Serialize the data to JSON and send it to the client
-func (c *connection) send(m morphData) {
+func (c *connection) send(m morphData) error {
 	if c.conn == nil {
-		return
+		return fmt.Errorf("connection is nil")
 	}
 	data, err := json.Marshal(m)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	err = wsutil.WriteServerText(c.conn, data)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
+
+	return nil
 }

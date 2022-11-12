@@ -3,6 +3,7 @@ package server
 import (
 	"embed"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -17,13 +18,14 @@ var public embed.FS
 type Server struct {
 	templates          *templates.Templates
 	connections        []*connection
-	connectionsPending chan *connection
+	connectionsPending chan net.Conn
+	lastId             int
 }
 
 func Start(templates *templates.Templates) *Server {
 	server := &Server{
 		templates:          templates,
-		connectionsPending: make(chan *connection),
+		connectionsPending: make(chan net.Conn),
 	}
 	http.HandleFunc("/", server.indexHandler())
 	http.Handle("/public/", http.FileServer(http.FS(public)))
@@ -47,7 +49,7 @@ func (s *Server) indexHandler() http.HandlerFunc {
 func (s *Server) wsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		s.addConnection(newConnection(conn))
+		s.addConnection(conn)
 		if err != nil {
 			panic(err)
 		}
@@ -74,20 +76,39 @@ type morphData struct {
 
 func (s *Server) broadcast(m morphData) {
 	for _, c := range s.connections {
-		c.send(m)
+		err := c.send(m)
+		if err != nil {
+			fmt.Println(err)
+			s.removeConnection(c)
+		}
 	}
 }
 
 func (s *Server) startConnectionAdder() {
 	for c := range s.connectionsPending {
-		s.connections = append(s.connections, c)
-		s.broadcast(morphData{
-			Id:   "connections",
-			Html: fmt.Sprintf("<p id=\"connections\" class=\"text-base text-gray-500\">%d connections </p>", len(s.connections)),
-		})
+		s.lastId++
+		s.connections = append(s.connections, newConnection(s.lastId, c))
+		s.updateConnectionCount()
 	}
 }
 
-func (s *Server) addConnection(c *connection) {
+func (s *Server) addConnection(c net.Conn) {
 	s.connectionsPending <- c
+}
+
+func (s *Server) removeConnection(c *connection) {
+	for i, con := range s.connections {
+		if con.id == c.id {
+			s.connections = append(s.connections[:i], s.connections[i+1:]...)
+			s.updateConnectionCount()
+			return
+		}
+	}
+}
+
+func (s *Server) updateConnectionCount() {
+	s.broadcast(morphData{
+		Id:   "connections",
+		Html: fmt.Sprintf("<p id=\"connections\" class=\"text-base text-gray-500\">%d connections </p>", len(s.connections)),
+	})
 }
