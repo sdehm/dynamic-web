@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-		server.Start(templates.New())
+	server.Start(templates.New())
 }

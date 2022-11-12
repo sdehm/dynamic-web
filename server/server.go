@@ -19,7 +19,10 @@ var public embed.FS
 
 type Server struct {
 	templates *templates.Templates
-	conn			net.Conn
+}
+
+type connection struct {
+	conn net.Conn
 }
 
 func Start(templates *templates.Templates) *Server {
@@ -28,13 +31,10 @@ func Start(templates *templates.Templates) *Server {
 	}
 	http.HandleFunc("/", indexHandler(server))
 	http.Handle("/public/", http.FileServer(http.FS(public)))
-	
+
 	http.Handle("/ws", wsHandler(server))
-	
-	go clockTick(server)
 
 	http.ListenAndServe(":8080", nil)
-
 
 	return server
 }
@@ -46,34 +46,34 @@ func indexHandler(s *Server) http.HandlerFunc {
 }
 
 type morphData struct {
-	Id string		`json:"id"`
+	Id   string `json:"id"`
 	Html string `json:"html"`
 }
 
 // sends a message to the client every second with the current time updated
-func clockTick(s *Server) {
+func clockTick(c *connection) {
 	fmt.Println("starting clock tick")
 	for tick := range time.Tick(time.Second) {
 		t := tick.Format(time.RFC3339)
 		fmt.Println(t)
-		s.send(morphData{
-			Id: "clock",
+		c.send(morphData{
+			Id:   "clock",
 			Html: fmt.Sprintf("<p id=\"clock\" class=\"text-base text-gray-500\">%s</p>", t),
 		})
 	}
 }
 
 // Serialize the data to JSON and send it to the client
-func (s *Server) send(m morphData) {
-	if s.conn == nil {
+func (c *connection) send(m morphData) {
+	if c.conn == nil {
 		return
 	}
 	data, err := json.Marshal(m)
 	if err != nil {
 		fmt.Println(err)
 	}
-	
-	err = wsutil.WriteServerText(s.conn, data)
+
+	err = wsutil.WriteServerText(c.conn, data)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -83,7 +83,7 @@ func (s *Server) send(m morphData) {
 func wsHandler(s *Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		s.conn = conn
+		go clockTick(&connection{conn})
 		if err != nil {
 			panic(err)
 		}
