@@ -15,13 +15,15 @@ import (
 var public embed.FS
 
 type Server struct {
-	templates   *templates.Templates
-	connections []*connection
+	templates          *templates.Templates
+	connections        []*connection
+	connectionsPending chan *connection
 }
 
 func Start(templates *templates.Templates) *Server {
 	server := &Server{
-		templates: templates,
+		templates:          templates,
+		connectionsPending: make(chan *connection),
 	}
 	http.HandleFunc("/", indexHandler(server))
 	http.Handle("/public/", http.FileServer(http.FS(public)))
@@ -29,6 +31,7 @@ func Start(templates *templates.Templates) *Server {
 	http.Handle("/ws", wsHandler(server))
 
 	go clockTick(server)
+	go server.startConnectionAdder()
 
 	http.ListenAndServe(":8080", nil)
 
@@ -63,7 +66,7 @@ func clockTick(s *Server) {
 func wsHandler(s *Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		s.connections = append(s.connections, newConnection(conn))
+		s.addConnection(newConnection(conn))
 		if err != nil {
 			panic(err)
 		}
@@ -74,4 +77,14 @@ func (s *Server) broadcast(m morphData) {
 	for _, c := range s.connections {
 		c.send(m)
 	}
+}
+
+func (s *Server) startConnectionAdder() {
+	for c := range s.connectionsPending {
+		s.connections = append(s.connections, c)
+	}
+}
+
+func (s *Server) addConnection(c *connection) {
+	s.connectionsPending <- c
 }
