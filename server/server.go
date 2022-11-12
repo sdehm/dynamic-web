@@ -23,7 +23,7 @@ type Server struct {
 	lastId            int
 }
 
-func Start(templates *templates.Templates) *Server {
+func Start(templates *templates.Templates) error {
 	server := &Server{
 		templates:         templates,
 		connectionUpdates: make(chan func()),
@@ -36,9 +36,7 @@ func Start(templates *templates.Templates) *Server {
 	go server.clockTick()
 	go server.startConnectionUpdates()
 
-	http.ListenAndServe(":8080", nil)
-
-	return server
+	return http.ListenAndServe(":8080", nil)
 }
 
 func (s *Server) indexHandler() http.HandlerFunc {
