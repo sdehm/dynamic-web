@@ -1,11 +1,15 @@
 import morphdom from 'morphdom';
 
-var el1 = document.createElement('div');
-el1.className = 'foo';
+// connect to websocket
+const socket = new WebSocket('ws://localhost:8080/ws');
 
-var el2 = document.createElement('div');
-el2.className = 'bar';
+socket.onopen = () => {
+  console.log('Connected');
+}
 
-morphdom(el1, el2);
-
-console.log(el1.outerHTML); // <div class="bar"></div>
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  const id = data.id;
+  const html = data.html
+  morphdom(document.getElementById(id), html);
+}
