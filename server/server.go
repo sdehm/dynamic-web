@@ -2,14 +2,11 @@ package server
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
 	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 	"github.com/sdehm/go-morph/templates"
 )
 
@@ -18,11 +15,8 @@ import (
 var public embed.FS
 
 type Server struct {
-	templates *templates.Templates
-}
-
-type connection struct {
-	conn net.Conn
+	templates   *templates.Templates
+	connections []*connection
 }
 
 func Start(templates *templates.Templates) *Server {
@@ -33,6 +27,8 @@ func Start(templates *templates.Templates) *Server {
 	http.Handle("/public/", http.FileServer(http.FS(public)))
 
 	http.Handle("/ws", wsHandler(server))
+
+	go clockTick(server)
 
 	http.ListenAndServe(":8080", nil)
 
@@ -51,31 +47,15 @@ type morphData struct {
 }
 
 // sends a message to the client every second with the current time updated
-func clockTick(c *connection) {
+func clockTick(s *Server) {
 	fmt.Println("starting clock tick")
 	for tick := range time.Tick(time.Second) {
 		t := tick.Format(time.RFC3339)
 		fmt.Println(t)
-		c.send(morphData{
+		s.broadcast(morphData{
 			Id:   "clock",
 			Html: fmt.Sprintf("<p id=\"clock\" class=\"text-base text-gray-500\">%s</p>", t),
 		})
-	}
-}
-
-// Serialize the data to JSON and send it to the client
-func (c *connection) send(m morphData) {
-	if c.conn == nil {
-		return
-	}
-	data, err := json.Marshal(m)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = wsutil.WriteServerText(c.conn, data)
-	if err != nil {
-		fmt.Println(err)
 	}
 }
 
@@ -83,9 +63,15 @@ func (c *connection) send(m morphData) {
 func wsHandler(s *Server) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		go clockTick(&connection{conn})
+		s.connections = append(s.connections, newConnection(conn))
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+func (s *Server) broadcast(m morphData) {
+	for _, c := range s.connections {
+		c.send(m)
 	}
 }
