@@ -82,6 +82,10 @@ func (s *Server) broadcast(m morphData) {
 func (s *Server) startConnectionAdder() {
 	for c := range s.connectionsPending {
 		s.connections = append(s.connections, c)
+		s.broadcast(morphData{
+			Id:   "connections",
+			Html: fmt.Sprintf("<p id=\"connections\" class=\"text-base text-gray-500\">%d connections </p>", len(s.connections)),
+		})
 	}
 }
 
