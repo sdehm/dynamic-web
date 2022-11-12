@@ -25,12 +25,12 @@ func Start(templates *templates.Templates) *Server {
 		templates:          templates,
 		connectionsPending: make(chan *connection),
 	}
-	http.HandleFunc("/", indexHandler(server))
+	http.HandleFunc("/", server.indexHandler())
 	http.Handle("/public/", http.FileServer(http.FS(public)))
 
-	http.Handle("/ws", wsHandler(server))
+	http.Handle("/ws", server.wsHandler())
 
-	go clockTick(server)
+	go server.clockTick()
 	go server.startConnectionAdder()
 
 	http.ListenAndServe(":8080", nil)
@@ -38,19 +38,25 @@ func Start(templates *templates.Templates) *Server {
 	return server
 }
 
-func indexHandler(s *Server) http.HandlerFunc {
+func (s *Server) indexHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.templates.Pages["index"].Execute(w, nil)
 	}
 }
 
-type morphData struct {
-	Id   string `json:"id"`
-	Html string `json:"html"`
+// currently just echos back the message and prints it to the console
+func (s *Server) wsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		conn, _, _, err := ws.UpgradeHTTP(r, w)
+		s.addConnection(newConnection(conn))
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // sends a message to the client every second with the current time updated
-func clockTick(s *Server) {
+func (s *Server) clockTick() {
 	fmt.Println("starting clock tick")
 	for tick := range time.Tick(time.Second) {
 		t := tick.Format(time.RFC3339)
@@ -62,15 +68,9 @@ func clockTick(s *Server) {
 	}
 }
 
-// currently just echos back the message and prints it to the console
-func wsHandler(s *Server) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		conn, _, _, err := ws.UpgradeHTTP(r, w)
-		s.addConnection(newConnection(conn))
-		if err != nil {
-			panic(err)
-		}
-	}
+type morphData struct {
+	Id   string `json:"id"`
+	Html string `json:"html"`
 }
 
 func (s *Server) broadcast(m morphData) {
