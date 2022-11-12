@@ -44,7 +44,6 @@ func (s *Server) indexHandler() http.HandlerFunc {
 	}
 }
 
-// currently just echos back the message and prints it to the console
 func (s *Server) wsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
