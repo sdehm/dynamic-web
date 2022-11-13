@@ -1,10 +1,14 @@
 {
   "type": "module",
   "dependencies": {
-    "esbuild": "^0.15.13",
     "morphdom": "^2.6.1"
   },
   "devDependencies": {
+    "esbuild": "^0.15.13",
     "tailwindcss": "^3.2.4"
+  },
+  "scripts": {
+    "tailwind": "tailwindcss -i ./templates/css/index.css -o ./server/public/index.css --watch",
+    "esbuild": "node build.js"
   }
 }
