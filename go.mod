@@ -1,4 +1,4 @@
-module github.com/sdehm/go-morph
+module github.com/sdehm/dynamic-web
 
 go 1.19
 

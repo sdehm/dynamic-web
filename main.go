@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/sdehm/go-morph/server"
-	"github.com/sdehm/go-morph/templates"
+	"github.com/sdehm/dynamic-web/server"
+	"github.com/sdehm/dynamic-web/templates"
 )
 
 func main() {

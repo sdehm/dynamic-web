@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gobwas/ws"
-	"github.com/sdehm/go-morph/templates"
+	"github.com/sdehm/dynamic-web/templates"
 )
 
 // public content
