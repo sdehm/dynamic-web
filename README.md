@@ -5,6 +5,8 @@ This sample project is a basic Go web server with server side rendered html. Dyn
 
 This approach is similar to [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view), [Hotwire](https://hotwired.dev/), and others.
 
+Tailwind CSS is used for the basic styling and esbuild for bundling.
+
 ## Running Sample
 
 Start tailwind watcher.
