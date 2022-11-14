@@ -1,9 +1,9 @@
 import { build } from 'esbuild';
 
 build({
-  format: 'esm',
+  format: "esm",
   bundle: true,
-  entryPoints: ['templates/index.js'],
-  outdir: 'server/public',
-  plugins: []
-})
+  entryPoints: ["templates/index.ts"],
+  outdir: "server/public",
+  plugins: [],
+});

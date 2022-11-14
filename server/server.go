@@ -19,7 +19,7 @@ var public embed.FS
 
 type Server struct {
 	templates         *templates.Templates
-	logger 					  *log.Logger
+	logger            *log.Logger
 	connections       []*connection
 	connectionUpdates chan func()
 	lastId            int
