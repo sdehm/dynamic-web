@@ -11,5 +11,5 @@ socket.onmessage = (event) => {
   const data = JSON.parse(event.data);
   const id = data.id;
   const html = data.html;
-  morphdom(document.getElementById(id), html);
+  morphdom(document.getElementById(id) as Node, html);
 };
