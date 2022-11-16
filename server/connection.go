@@ -14,10 +14,12 @@ type connection struct {
 }
 
 func newConnection(id int, conn net.Conn) *connection {
-	return &connection{
+	c := &connection{
 		id:   id,
 		conn: conn,
 	}
+
+	return c
 }
 
 // Serialize the data to JSON and send it to the client
@@ -36,4 +38,29 @@ func (c *connection) send(m morphData) error {
 	}
 
 	return nil
+}
+
+func (c *connection) receiver(s *Server) {
+	for {
+		data, _, err := wsutil.ReadClientData(c.conn)
+		if err != nil {
+			return
+		}
+
+		xy := struct {
+			X  int    `json:"x"`
+			Y  int    `json:"y"`
+			Id string `json:"id"`
+		}{}
+		err = json.Unmarshal(data, &xy)
+		if err != nil {
+			return
+		}
+
+		s.broadcast(morphData{
+			Type: "morph_data",
+			Id:   "cursor_" + xy.Id,
+			Html: fmt.Sprintf("<div id=\"cursor_%s\" class=\"cursor\" style=\"--x: %d; --y: %d;\">%[1]s</div>", xy.Id, xy.X, xy.Y),
+		})
+	}
 }
