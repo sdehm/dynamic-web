@@ -60,7 +60,7 @@ func (c *connection) receiver(s *Server) {
 		s.broadcast(morphData{
 			Type: "morph_data",
 			Id:   "cursor_" + xy.Id,
-			Html: fmt.Sprintf("<div id=\"cursor_%s\" class=\"cursor\" style=\"--x: %d; --y: %d;\"> </div>", xy.Id, xy.X, xy.Y),
+			Html: fmt.Sprintf("<div id=\"cursor_%s\" class=\"cursor\" style=\"--x: %d; --y: %d;\">%[1]s</div>", xy.Id, xy.X, xy.Y),
 		})
 	}
 }
