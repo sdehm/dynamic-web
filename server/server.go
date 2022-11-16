@@ -50,6 +50,7 @@ func (s *Server) indexHandler() http.HandlerFunc {
 
 func (s *Server) wsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Println("new connection")
 		conn, _, _, err := ws.UpgradeHTTP(r, w)
 		s.addConnection(conn)
 		if err != nil {
@@ -65,6 +66,7 @@ func (s *Server) clockTick() {
 		t := tick.Format(time.RFC3339)
 		s.logger.Printf("sending time: %s", t)
 		s.broadcast(morphData{
+			Type: "morph_data",
 			Id:   "clock",
 			Html: fmt.Sprintf("<p id=\"clock\" class=\"text-base text-gray-500\">%s</p>", t),
 		})
@@ -72,6 +74,7 @@ func (s *Server) clockTick() {
 }
 
 type morphData struct {
+	Type string `json:"type"`
 	Id   string `json:"id"`
 	Html string `json:"html"`
 }
@@ -95,9 +98,29 @@ func (s *Server) startConnectionUpdates() {
 func (s *Server) addConnection(c net.Conn) {
 	s.connectionUpdates <- func() {
 		s.lastId++
-		s.connections = append(s.connections, newConnection(s.lastId, c))
+		conn := newConnection(s.lastId, c)
+		go conn.receiver(s)
+		s.connections = append(s.connections, conn)
 		go s.updateConnectionCount()
+		id := fmt.Sprint(conn.id)
+		conn.send(morphData{
+			Type: "connected",
+			Id : id,
+		})
+		go s.broadcast(morphData{
+			Type: "morph_data",
+			Id:   "cursors",
+			Html: s.buildCursorHtml(),
+		})
 	}
+}
+
+func (s *Server) buildCursorHtml() string {
+	html := "<div id=\"cursors\">"
+	for _, c := range s.connections {
+		html += fmt.Sprintf("<div id=\"cursor_%d\" class=\"cursor\"></div>", c.id)
+	}
+	return html + "</div>"
 }
 
 func (s *Server) removeConnection(c *connection) {
@@ -114,6 +137,7 @@ func (s *Server) removeConnection(c *connection) {
 
 func (s *Server) updateConnectionCount() {
 	s.broadcast(morphData{
+		Type: "morph_data",
 		Id:   "connections",
 		Html: fmt.Sprintf("<p id=\"connections\" class=\"text-base text-gray-500\">%d connections </p>", len(s.connections)),
 	})
