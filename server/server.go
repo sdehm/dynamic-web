@@ -105,7 +105,7 @@ func (s *Server) addConnection(c net.Conn) {
 		id := fmt.Sprint(conn.id)
 		conn.send(morphData{
 			Type: "connected",
-			Id : id,
+			Id:   id,
 		})
 		go s.broadcast(morphData{
 			Type: "morph_data",

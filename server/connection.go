@@ -48,8 +48,8 @@ func (c *connection) receiver(s *Server) {
 		}
 
 		xy := struct {
-			X int `json:"x"`
-			Y int `json:"y"`
+			X  int    `json:"x"`
+			Y  int    `json:"y"`
 			Id string `json:"id"`
 		}{}
 		err = json.Unmarshal(data, &xy)
