@@ -1,7 +1,7 @@
 import morphdom from "morphdom";
 
 // connect to websocket
-const socket = new WebSocket("ws://localhost:8080/ws");
+const socket = new WebSocket("wss://dynamic-web.fly.dev/ws");
 
 // initilize the connection id
 let connectionId: string;
