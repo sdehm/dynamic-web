@@ -1,8 +1,14 @@
 package templates
 
 import (
+	"embed"
 	"html/template"
 )
+
+// templates
+//
+//go:embed *.go.html
+var _ embed.FS
 
 type Templates struct {
 	Pages map[string]*template.Template
